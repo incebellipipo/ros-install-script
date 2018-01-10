@@ -135,13 +135,13 @@ sudo apt-get upgrade -y
 echo "[Installing ROS]"
 read -p "Which package do you want to install? 1. Full Desktop, 2. Desktop, 3. Bare Bones? " answer
 case ${answer} in
-  1)
+  "1")
     package_type="desktop-full"
     ;;
-  2)
+  "2")
     package_type="desktop"
     ;;
-  3)
+  "3")
     package_type="ros-base"
     ;;
   * )
@@ -149,7 +149,22 @@ case ${answer} in
     ;;
 esac
 
-sudo apt-get install -y ros-'$name_ros_distro'-'$package_type' ros-'$name_ros_distro'-rqt-*
+install_rqt=""
+read -p "Do you also install all rqt packages? (Y/n) " answer
+case ${answer} in
+  n|N)
+    ;;
+  *)
+    install_rqt="ros-${name_ros_distro}-rqt-*"
+    ;;
+esac
+
+sudo apt-get install -y ros-${name_ros_distro}-${package_type} ${install_rqt}
+
+if ! [ $? -eq 0 ] ; then
+  echo "Failure detected when installing ros packages, exiting"
+  exit 1
+fi
 
 echo "[rosdep init and python-rosinstall]"
 sudo sh -c "rosdep init"
