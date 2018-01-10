@@ -2,12 +2,11 @@
 # The BSD License
 # Copyright (c) 2014 OROCA and ROS Korea Users Group
 
-set -x
-
 function usage {
     # Print out usage of this script.
-    echo >&2 "usage: $0 [catkin workspace name (default:catkin_ws)] [ROS distro (default: indigo)"
-    echo >&2 "          [-h|--help] Print help message."
+    echo >&2 "usage: $0 [catkin workspace name (default:catkin_ws)] [ROS distro (default: kinetic)"
+    echo >&2 "          [-h|--help]    Print help message."
+    echo >&2 "          [-v|--verbose] Verbose output."
     exit 0
 }
 
@@ -18,32 +17,78 @@ function get-shell {
 }
 
 # Parse command line. If the number of argument differs from what is expected, call `usage` function.
-OPT=`getopt -o h -l help -- $*`
+OPTS=`getopt -o vhns: --long help,verbose: -n 'parse-options' -- "$@"`
 if [ $# != 2 ]; then
     usage
 fi
 eval set -- $OPT
 while [ -n "$1" ] ; do
     case $1 in
-        -h|--help) usage ;;
-        --) shift; break;;
-        *) echo "Unknown option($1)"; usage;;
+        -h | --help) 
+          usage
+          shift; 
+          ;;
+        -v | --verbose)
+          set -x
+          shift;
+          ;;
+        --) 
+          shift; 
+          break
+          ;;
+        *) 
+          echo "Unknown option($1)"; 
+          usage
+          ;;
     esac
 done
 
 name_catkinws=$1
-name_catkinws=${name_catkinws:="catkin_ws"}
+name_catkinws=${name_catkinws:="ros_ws"}
 name_ros_distro=$2
-name_ros_distro=${name_ros_distro:="xenial"}
+name_ros_distro=${name_ros_distro:="kinetic"}
+
 username=`id -u -n`
-version=`cat /etc/*-release | grep UBUNTU_CODENAME | awk -F '=' '{print $2}'`
+ubuntu_version=`cat /etc/*-release | grep UBUNTU_CODENAME | awk -F '=' '{print $2}'`
+user_shell=`get-shell`
+relesenum=`grep DISTRIB_DESCRIPTION /etc/*-release | awk -F 'Ubuntu ' '{print $2}' | awk -F ' LTS' '{print $1}'`
+its_okay_to_install=false
+
+# check if ubuntu version and ros version is meet correctly
+case $name_ros_distro in
+  "lunar" )
+    if [[ "$ubuntu_version" == +(xenial|yakkety|zesty)  ]] ; then
+      its_okay_to_install=true
+    fi
+    ;;
+  "kinetic" )
+    if [[ "$ubuntu_version" == +(wily|xenial) ]] ; then
+      its_okay_to_install=true
+    fi
+    ;;
+  "jade" )
+    if [[ "$ubuntu_version" == +(trusty|utopic|vivid) ]] ; then
+      its_okay_to_install=true
+    fi
+    ;;
+  "igloo" )
+    if [[ "$ubuntu_version" == +(saucy|trusty) ]] ; then
+      its_okay_to_install=true
+    fi
+    ;;
+esac
+
+if ! $its_okay_to_install ; then
+    echo "Selected ros version and current ubuntu version is not met."
+    echo "Please refer to page: http://www.ros.org/reps/rep-0003.html"
+    exit 1
+fi
 
 echo "[Checking the ubuntu version]"
-case $version in
-  "saucy" | "trusty" | "vivid" | "wily" | "xenial")
+case $ubuntu_version in
+  "saucy" | "trusty" | "vivid" | "wily" | "xenial" | "yakkety" | "zesty" )
   ;;
-  *)
-    echo "ERROR: This script will only work on Ubuntu Saucy(13.10) / Trusty(14.04) / Vivid / Wily / Xenial. Exit."
+  *) echo "ERROR: This script will only work on Ubuntu Saucy(13.10) / Trusty(14.04) / Vivid / Wily / Xenial / Yakkety / Zesty and their forks. Exit."
     exit 0
 esac
 
@@ -57,9 +102,7 @@ echo "[Update & upgrade the package]"
 sudo apt-get update
 sudo apt-get upgrade -y 
 
-
 echo "[Check the 14.04.2 TLS issue]"
-relesenum=`grep DISTRIB_DESCRIPTION /etc/*-release | awk -F 'Ubuntu ' '{print $2}' | awk -F ' LTS' '{print $1}'`
 if [ "$relesenum" = "14.04.2" ]
 then
   echo "Your ubuntu version is $relesenum"
@@ -75,7 +118,7 @@ sudo ntpdate ntp.ubuntu.com
 
 echo "[Add the ROS repository]"
 if [ ! -e /etc/apt/sources.list.d/ros-latest.list ]; then
-  sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu ${version} main\" > /etc/apt/sources.list.d/ros-latest.list"
+  sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu ${ubuntu_version} main\" > /etc/apt/sources.list.d/ros-latest.list"
 fi
 
 echo "[Download the ROS keys]"
@@ -85,11 +128,28 @@ if [ -z "$roskey" ]; then
 fi
 
 echo "[Update & upgrade the package]"
+
 sudo apt-get update
-sudo apt-get upgrade
+sudo apt-get upgrade -y
 
 echo "[Installing ROS]"
-sudo apt-get install -y ros-'$name_ros_distro'-desktop-full ros-'$name_ros_distro'-rqt-*
+read -p "Which package do you want to install? 1. Full Desktop, 2. Desktop, 3. Bare Bones? " answer
+case ${answer} in
+  1)
+    package_type="desktop-full"
+    ;;
+  2)
+    package_type="desktop"
+    ;;
+  3)
+    package_type="ros-base"
+    ;;
+  * )
+    package_type="ros-base"
+    ;;
+esac
+
+sudo apt-get install -y ros-'$name_ros_distro'-'$package_type' ros-'$name_ros_distro'-rqt-*
 
 echo "[rosdep init and python-rosinstall]"
 sudo sh -c "rosdep init"
@@ -105,15 +165,11 @@ cd ~/$name_catkinws/
 catkin_make
 
 echo "[Setting the ROS evironment]"
-user_shell=`get-shell`
-sh -c "echo \"source /opt/ros/$name_ros_distro/setup.$user_shell\" >> ~/."$user_shell"rc"
-sh -c "echo \"source ~/$name_catkinws/devel/setup.bash\" >> ~/."$user_shell"rc"
-sh -c "echo \"export ROS_MASTER_URI=http://localhost:11311\" >> ~/."$user_shell"rc"
-sh -c "echo \"export ROS_HOSTNAME=localhost\" >> ~/."$user_shell"rc"
+sh -c "echo \"source /opt/ros/$name_ros_distro/setup.$user_shell\" >> ~/.${user_shell}rc"
+sh -c "echo \"source ~/$name_catkinws/devel/setup.bash\" >> ~/.${user_shell}rc"
+sh -c "echo \"export ROS_MASTER_URI=http://localhost:11311\" >> ~/.${user_shell}rc"
+sh -c "echo \"export ROS_HOSTNAME=localhost\" >> ~/.${user_shell}rc"
 
 echo "[Complete!!!]"
 
-exec bash
-
 exit 0
-
