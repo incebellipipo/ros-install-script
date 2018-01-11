@@ -180,10 +180,7 @@ cd ~/$name_catkinws/
 catkin_make
 
 echo "[Setting the ROS evironment]"
-sh -c "echo \"source /opt/ros/$name_ros_distro/setup.$user_shell\" >> ~/.${user_shell}rc"
-sh -c "echo \"source ~/$name_catkinws/devel/setup.bash\" >> ~/.${user_shell}rc"
-sh -c "echo \"export ROS_MASTER_URI=http://localhost:11311\" >> ~/.${user_shell}rc"
-sh -c "echo \"export ROS_HOSTNAME=localhost\" >> ~/.${user_shell}rc"
+echo "source ~/${name_catkinws}/devel/setup.${user_shell}" | tee -a ~/.${user_shell}rc
 
 echo "[Complete!!!]"
 
