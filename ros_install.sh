@@ -64,13 +64,13 @@ its_okay_to_install=false
 
 read -p "Which package do you want to install? 1. Full Desktop, 2. Desktop, 3. Bare Bones? " answer
 case "$answer" in
-  "1")
+  1)
     package_type="desktop-full"
     ;;
-  "2")
+  2)
     package_type="desktop"
     ;;
-  "3")
+  3)
     package_type="ros-base"
     ;;
   * )
