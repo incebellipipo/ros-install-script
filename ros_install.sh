@@ -5,8 +5,6 @@
 function usage {
     # Print out usage of this script.
     echo >&2 "usage: $0 [catkin workspace name (default:catkin_ws)] [ROS distro (default: kinetic)"
-    echo >&2 "          [-h|--help]    Print help message."
-    echo >&2 "          [-v|--verbose] Verbose output."
     exit 0
 }
 
@@ -16,37 +14,13 @@ function get-shell {
     echo ${shell##*/}
 }
 
-# Parse command line. If the number of argument differs from what is expected, call `usage` function.
-OPTS=`getopt -o vhns: --long help,verbose: -n 'parse-options' -- "$@"`
-if [ $# != 2 ]; then
-    usage
-fi
-eval set -- $OPT
-while [ -n "$1" ] ; do
-    case $1 in
-        -h | --help) 
-          usage
-          shift; 
-          ;;
-        -v | --verbose)
-          set -x
-          shift;
-          ;;
-        --) 
-          shift; 
-          break
-          ;;
-        *) 
-          echo "Unknown option($1)"; 
-          usage
-          ;;
-    esac
-done
-
 name_catkinws=$1
 name_catkinws=${name_catkinws:="ros_ws"}
 name_ros_distro=$2
 name_ros_distro=${name_ros_distro:="kinetic"}
+
+echo $name_catkinws
+echo $name_ros_distro
 
 username=`id -u -n`
 
