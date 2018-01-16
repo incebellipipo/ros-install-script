@@ -49,10 +49,44 @@ name_ros_distro=$2
 name_ros_distro=${name_ros_distro:="kinetic"}
 
 username=`id -u -n`
-ubuntu_version=`cat /etc/*-release | grep UBUNTU_CODENAME | awk -F '=' '{print $2}'`
+
 user_shell=`get-shell`
-relesenum=`grep DISTRIB_DESCRIPTION /etc/*-release | awk -F 'Ubuntu ' '{print $2}' | awk -F ' LTS' '{print $1}'`
+
+if [ -d /etc/upstream-release ] ; then
+    relesenum=`cat /etc/upstream-release/lsb-release | grep DESCRIPTION | awk -F 'Ubuntu ' '{print $2}' | awk -F ' LTS' '{print $1}'`
+    ubuntu_version=`cat /etc/upstream-release/lsb-release | grep CODENAME | awk -F '=' '{print $2}'`
+else
+    relesenum=`cat /etc/lsb-release | grep DESCRIPTION | awk -F 'Ubuntu ' '{print $2}' | awk -F ' LTS' '{print $1}'`
+    ubuntu_version=`cat /etc/lsb-release | grep CODENAME | awk -F '=' '{print $2}'`
+fi
+
 its_okay_to_install=false
+
+read -p "Which package do you want to install? 1. Full Desktop, 2. Desktop, 3. Bare Bones? " answer
+case ${answer} in
+  "1")
+    package_type="desktop-full"
+    ;;
+  "2")
+    package_type="desktop"
+    ;;
+  "3")
+    package_type="ros-base"
+    ;;
+  * )
+    package_type="ros-base"
+    ;;
+esac
+
+install_rqt=""
+read -p "Do you also install all rqt packages? (Y/n) " answer
+case ${answer} in
+  n|N)
+    ;;
+  *)
+    install_rqt="ros-${name_ros_distro}-rqt-*"
+    ;;
+esac
 
 # check if ubuntu version and ros version is meet correctly
 case $name_ros_distro in
@@ -133,31 +167,7 @@ sudo apt-get update
 sudo apt-get upgrade -y
 
 echo "[Installing ROS]"
-read -p "Which package do you want to install? 1. Full Desktop, 2. Desktop, 3. Bare Bones? " answer
-case ${answer} in
-  "1")
-    package_type="desktop-full"
-    ;;
-  "2")
-    package_type="desktop"
-    ;;
-  "3")
-    package_type="ros-base"
-    ;;
-  * )
-    package_type="ros-base"
-    ;;
-esac
 
-install_rqt=""
-read -p "Do you also install all rqt packages? (Y/n) " answer
-case ${answer} in
-  n|N)
-    ;;
-  *)
-    install_rqt="ros-${name_ros_distro}-rqt-*"
-    ;;
-esac
 
 sudo apt-get install -y ros-${name_ros_distro}-${package_type} ${install_rqt}
 
