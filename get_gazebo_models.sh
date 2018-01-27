@@ -13,7 +13,7 @@ for i in *
 do
   tar -zvxf "$i/model.tar.gz"
 done
-
+mkdir -p $HOME/.gazebo/models
 # Copy extracted files to the local model folder
 cp -vfR * "$HOME/.gazebo/models/"
 
