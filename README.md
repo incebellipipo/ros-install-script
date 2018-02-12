@@ -8,4 +8,4 @@ also refered in [this ros wiki page](http://wiki.ros.org/ROS/Installation/TwoLin
 ## Usage
 ### Wget
 
-    bash <(wget -O- https://git.io/vNgUe) ros_ws kinetic
+    bash <(curl -fsSL https://git.io/vNgUe) ros_ws kinetic
